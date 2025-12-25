@@ -16,6 +16,8 @@ Navigate to the project directory and start the development server:
 `cd nextjs-blog`  
 `npm run dev`  
 Access your Next.js application at http://localhost:3000/
+<img width="1063" height="708" alt="image" src="https://github.com/user-attachments/assets/c5d74d3d-bcb0-43cf-ba63-1f269867baa1" />
+
 
 ## Create Configuration File
 1. In the root of your project folder, create a new file called next.config.js
