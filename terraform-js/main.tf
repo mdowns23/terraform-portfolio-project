@@ -63,3 +63,71 @@ resource "aws_s3_bucket_policy" "nextjs_bucket_policy" {
 #using multiple security layers is best practice to prevent unauthorized access
 #acl are simpler and provide quick accesss settings
 #bucket policy is more granular for bucket/objects
+
+#---Cloudfront--------------------------------------------------------------
+
+# Origin Access Identity
+# Purpose: only cloudfront can access s3 bucket
+resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
+    comment = "OAI for Next.JS portfolio site"
+  
+}
+
+# Cloudfront distribution
+# Purpose: cache reduces load times
+resource "aws_cloudfront_distribution" "nextjs_distribution" {
+  # specifies origin settings for cloudfront distribution
+  origin {
+    # fetch content from bucket
+    domain_name = aws_s3_bucket.nextjs_bucket.bucket_regional_domain_name
+    origin_id = "S3-nextjs-portfolio-bucket" #unique origin id in cloudfront
+    
+    # settings for s3 as the origin, specifies oai that cloudfront uses to access
+    # prevents direct access to s3 bucket besides cloudfront
+    s3_origin_config {
+        origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
+    }
+  }
+
+  enabled = true # cloudfront distribution is active and serves content as soon as created
+  is_ipv6_enabled = true # enables ipv6 support for distribution
+  comment = "Next.js portfolio site" # comment for distribution to identify purpose
+  default_root_object = "index.html" # default root object for distribution
+
+  default_cache_behavior {
+    #http methods allowed for caching behavior
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    #common retrieval methods are served quickly
+    cached_methods = ["GET", "HEAD"] # specify http methods to cache
+    target_origin_id = "S3-nextjs-portfolio-bucket" # links cache behavior to specified origin
+
+    forwarded_values {
+      query_string = false # do not forward query strings to origin
+      cookies {
+        forward = "none" #cookies are not forwarded, improves caching efficiency and reduces complexity
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https" # viewers redirected to https improving security (secure/encrypted)
+    min_ttl = 0 #min amount of time an object is cached (immmediate updates if needed)
+    default_ttl = 3600 # default amount of time an object is cached, 1hr
+    max_ttl = 86400 #max amount of time an object is cached, content refreshed at least every day
+  }
+  
+  #geographical restrictions
+  restrictions {
+    geo_restriction {
+      restriction_type = none #none, whitelist or blacklist
+    }
+  }
+  
+  #ssl/tls certs
+  viewer_certificate {
+    #use default certs ssl/tls https
+    cloudfront_default_certificate = true #secure connection by using certs
+    #custom domains would need a custom cert by using aws cert manager
+
+  }
+
+  
+}
