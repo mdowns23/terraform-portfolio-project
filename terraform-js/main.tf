@@ -37,18 +37,18 @@ resource "aws_s3_bucket_acl" "nextjs_bucket_acl" {
     aws_s3_bucket_ownership_controls.nextjs_bucket_ownership_control,
     aws_s3_bucket_public_access_block.nextjs_bucket_public_access_block
     ]
-  bucket = aws_s3_bucket.nextjs_bucket
+  bucket = aws_s3_bucket.nextjs_bucket.id
   acl = "public-read" #sets bucket acl to public read
 }
 
 # bucket policy
 # Purpose: define detailed access permissions to bucket/object using iam permissions
 resource "aws_s3_bucket_policy" "nextjs_bucket_policy" {
-  bucket = aws_s3_bucket.nextjs_bucket
+  bucket = aws_s3_bucket.nextjs_bucket.id
 
   #IAM policy
-  policy = jjsondecode(({
-    version = "2012-10-17"
+  policy = jsonencode({
+    Version = "2012-10-17"
     Statement = [
         {
             Sid = "PublicReadGetObject"
@@ -58,7 +58,12 @@ resource "aws_s3_bucket_policy" "nextjs_bucket_policy" {
             Resource = "${aws_s3_bucket.nextjs_bucket.arn}/*"
         }
     ]
-  }))
+  })
+  
+  # wait for block public policy to be set to false
+  depends_on = [
+    aws_s3_bucket_public_access_block.nextjs_bucket_public_access_block
+  ]
 }
 #using multiple security layers is best practice to prevent unauthorized access
 #acl are simpler and provide quick accesss settings
@@ -117,7 +122,7 @@ resource "aws_cloudfront_distribution" "nextjs_distribution" {
   #geographical restrictions
   restrictions {
     geo_restriction {
-      restriction_type = none #none, whitelist or blacklist
+      restriction_type = "none" #none, whitelist or blacklist
     }
   }
   
